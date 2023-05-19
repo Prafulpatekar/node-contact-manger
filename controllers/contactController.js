@@ -1,12 +1,15 @@
 const asyncHandler = require("express-async-handler");
+const Contact = require("../models/contactModel");
+const mongoose = require("mongoose");
 
 // @desc Get All Contacts
 // @route GET /api/v1/contacts
 // @access public
 const getContacts = asyncHandler(async (req, res) => {
+  const contacts = await Contact.find();
   res.status(200).json({
-    data: [],
-    message: "Get all contacts",
+    data: contacts,
+    message: "All available contacts",
   });
 });
 
@@ -14,14 +17,19 @@ const getContacts = asyncHandler(async (req, res) => {
 // @route POST /api/v1/contacts
 // @access public
 const createContact = asyncHandler(async (req, res) => {
-  console.log("Request body:", req.body);
+  //   console.log("Request body:", req.body);
   const { name, email, phone } = req.body;
   if (!name || !email || !phone) {
     res.status(400);
     throw new Error("All fields are mandatory!");
   }
-  res.status(200).json({
-    data: req.body,
+  const contact = await Contact.create({
+    name,
+    email,
+    phone,
+  });
+  res.status(201).json({
+    data: contact,
     message: "Contact Created successfully",
   });
 });
@@ -30,9 +38,21 @@ const createContact = asyncHandler(async (req, res) => {
 // @route GET /api/v1/contacts
 // @access public
 const getContact = asyncHandler(async (req, res) => {
+  //   const contact = await Contact.findOne({_id:req.params.id});
+  const isValidId = mongoose.Types.ObjectId.isValid(req.params.id);
+  if (!isValidId) {
+    res.status(400);
+    throw new Error("Invalid id: Not found");
+  }
+  const contact = await Contact.findById(req.params.id);
+  //   console.log("Conatct=>", contact);
+  if (!contact) {
+    res.status(404);
+    throw new Error("Contact not found!");
+  }
   res.status(200).json({
-    data: [],
-    message: `Get contact id: ${req.params.id}`,
+    data: contact,
+    message: `Contact id: ${req.params.id}`,
   });
 });
 
