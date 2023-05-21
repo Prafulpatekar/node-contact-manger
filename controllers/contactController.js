@@ -4,9 +4,9 @@ const mongoose = require("mongoose");
 
 // @desc Get All Contacts
 // @route GET /api/v1/contacts
-// @access public
+// @access Private
 const getContacts = asyncHandler(async (req, res) => {
-  const contacts = await Contact.find();
+  const contacts = await Contact.find({ user_id: req.user.id });
   res.status(200).json({
     data: contacts,
     message: "All available contacts",
@@ -15,7 +15,7 @@ const getContacts = asyncHandler(async (req, res) => {
 
 // @desc create  Contact
 // @route POST /api/v1/contacts
-// @access public
+// @access Private
 const createContact = asyncHandler(async (req, res) => {
   //   console.log("Request body:", req.body);
   const { name, email, phone } = req.body;
@@ -24,6 +24,7 @@ const createContact = asyncHandler(async (req, res) => {
     throw new Error("All fields are mandatory!");
   }
   const contact = await Contact.create({
+    user_id:req.user.id,
     name,
     email,
     phone,
@@ -36,7 +37,7 @@ const createContact = asyncHandler(async (req, res) => {
 
 // @desc Get All Contacts
 // @route GET /api/v1/contacts
-// @access public
+// @access Private
 const getContact = asyncHandler(async (req, res) => {
   //   const contact = await Contact.findOne({_id:req.params.id});
   const isValidId = mongoose.Types.ObjectId.isValid(req.params.id);
@@ -58,7 +59,7 @@ const getContact = asyncHandler(async (req, res) => {
 
 // @desc Get All Contacts
 // @route GET /api/v1/contacts
-// @access public
+// @access Private
 const updateContact = asyncHandler(async (req, res) => {
   const isValidId = mongoose.Types.ObjectId.isValid(req.params.id);
   if (!isValidId) {
@@ -70,6 +71,10 @@ const updateContact = asyncHandler(async (req, res) => {
   if (!contact) {
     res.status(404);
     throw new Error("Contact not found!");
+  }
+  if(contact.user_id.toString() !== req.user.id){
+    res.status(403);
+    throw new Error("User don't have permission to update contact")
   }
   const updatedContact = await Contact.findByIdAndUpdate(
     req.params.id,
@@ -84,18 +89,22 @@ const updateContact = asyncHandler(async (req, res) => {
 
 // @desc Get All Contacts
 // @route GET /api/v1/contacts
-// @access public
+// @access Private
 const deleteContact = asyncHandler(async (req, res) => {
   const isValidId = mongoose.Types.ObjectId.isValid(req.params.id);
   if (!isValidId) {
     res.status(400);
     throw new Error("Invalid id: Not found");
   }
-  const contact = await Contact.findByIdAndDelete(req.params.id);
+  const contact = await Contact.findById(req.params.id);
   //   console.log("Conatct=>", contact);
   if (!contact) {
     res.status(404);
     throw new Error("Contact not found!");
+  }
+  if(contact.user_id.toString() !== req.user.id){
+    res.status(403);
+    throw new Error("User don't have permission to delete contact")
   }
   await Contact.findByIdAndDelete(req.params.id);
   res.status(200).json({
